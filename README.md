@@ -6,12 +6,12 @@
 
 
 
-<h2> Profesor </h2>
+<h3> Profesor </h3>
 
 <h5> Dr. José Octavio Gutiérrez García </h5>
 
 
-<h2> Integrantes </h2>
+<h3> Integrantes </h3>
 
 <h5> Diego Hernández Delgado - 176262 </h5>
 
@@ -95,7 +95,8 @@ Dicho algoritmo consiste en la asignación aleatoria de los centroides correspon
         * ...
 - README.md
 
-<h2> Explicación detallada de la implementación del experimento </h2>
+
+<h2> Ejecución del experimento </h2>
 
 Para la implementación del algoritmo K-means en lenguaje de programación C++ se utilizó la biblioteca de OpenMP para la paralelización del algoritmo.
 
@@ -105,31 +106,48 @@ El archivo **generate_data.py** genera aleatoriamente los datos de prueba con la
 
 El archivo **serial_experiment.sh** ejecuta el archivo ejecutable **./serial_kmeans** con diferentes parámetros (**num_clusters**, **num_points**, **num_max_iterations**) para las distintas pruebas del código serial.
 
-El archivo **./parallel_kmeans.cpp** ejecuta el archivo ejecutable **./parallel_kmeans** (**num_clusters**, **num_points**, **num_max_iterations**, **num_threads**) con diferentes parámetros para las distintas pruebas del código paralelo.
+El archivo **./parallel_kmeans.cpp** ejecuta el archivo ejecutable **./parallel_kmeans** (**num_clusters**, **num_points**, **num_max_iterations**, **num_threads**) con diferentes parámetros/argumentos para las distintas pruebas del código paralelo.
 
-El número de clusters está asignado a 5 por defecto. El número máximo de iteraciones está asignado a 100 por defecto.
+Argumentos:
 
-El número de puntos se itera entre los siguientes valores: 100, 100000, 200000, 300000, 400000, 600000, 800000, 1000000
+- El número de clusters está asignado a 5 por defecto. El número máximo de iteraciones está asignado a 100 por defecto.
+
+- El número de puntos se itera entre los siguientes valores: 100, 100000, 200000, 300000, 400000, 600000, 800000, 1000000
+
+- El número de clusters se fijó en 5 para todas las pruebas aunque puede ser editado en los archivos **serial_experiment.sh** y **parallel_experiment.sh** e inclusive en el archivo **./parallel_kmeans.cpp** y **./serial_kmeans.cpp**.
+
+- El número máximo de hilos se itera entre los siguientes valores: **1**, **6** (número de cores virtuales/2), **12** número de cores virtuales, **24** (número de cores virtuales*2)
+
+<h2> Explicación detallada de la implementación </h2>
+
+La implentación del algoritmo K-means en lenguaje de programación C++ se realizó en dos archivos: **./serial_kmeans.cpp** y **./parallel_kmeans.cpp** de forma similar.
+
+La diferencia del archivo **./parallel_kmeans.cpp** es que se utilizó la biblioteca de OpenMP para la paralelización del algoritmo, algunos de las estructuras de control cícilicas for se paralelizaron con la directiva **#pragma omp parallel for** cuidando de no anidar directivas de paralelismo. 
+
+Los métodos utilizados para la implementación del algoritmo K-means son los siguientes:
+
+- **euclidean_distance**: Calcula la distancia euclidiana entre dos puntos.
+
+- **find_nearest_centroid**: Encuentra el centroide más cercano a un punto dado, utilizando el método anterior y retorna el índice del centroide.
+
+- **update_centroids**: Actualiza la posición de los centroides, calculando el promedio de las posiciones de todos los puntos asignados a cada centroide.
+
+- **kmeans**: Ejecuta el algoritmo K-means, utilizando los métodos anteriores y retorna los centroides finales y los puntos asignados a cada centroide.
+
+- **load_CSV**: Carga los datos de prueba desde un archivo csv.
+
+- **save_to_CSV**: Guarda los resultados del algoritmo K-means en un archivo csv, es decir, los puntos con su respectivo centroide.
+
+- **save_array_to_CSV**: Guarda los tiempos medidos de los 10 experimentos. En un renglón el tiempo de cada prueba de cada configuración particular de las variables de entrada. En el primer renglón se almacena el promedio de las 10 pruebas.
+
+- **main**: se obtienen los argumentos de entrada del programa, se inicializan  los arreglos, se iteran los 10 experimentos, se guardan los resultados, se guardan los tiempos medidos y libera la memoria.
 
 
- 
-Experimento:
+<h2> Estrategia de paralelización </h2>
 
-Parametrizar el programa
-• Número de puntos
-{100000, 200000, 300000, 400000, 600000, 800000, 1000000}
-• Número de hilos
-{1, (número de cores virtuales)/2, número de cores virtuales, número de cores virtuales*2}
-• En búsqueda de un speedup, es posible explorar más o menos hilos.
-• Promediar diez iteraciones para cada configuración
-• Comparar contra version serial
-• Obtener gráfica de Speed Ups
+- omp_set_num_threads(num_threads): Se establece el número de hilos a utilizar en la ejecución del programa principal **main**.
 
-
-
-
-
-
+- el método **kmeans** se paraleliza con la directiva **#pragma omp parallel for** en algunos estructuras for explicitas o dentro de otros métodos auxiliares.
 
 
 <h2> Instrucciones de ejecución </h2>
@@ -147,7 +165,13 @@ Parametrizar el programa
 
 <h2> Interpretación y análisis de resultados </h2>
 
-<p> El speedup observado en la implementación paralela es directamente proporcional al número de cores utilizados. </p>
+<p> El speedup observado en la implementación paralela debería ser, en principio, directamente proporcional al número de cores utilizados. 
+Sin emabrgo, en la implementación paralela se observó que el speedup no es directamente proporcional al número de cores utilizados en este experimento. 
+
+Esto resultado inesperado se puede deber a que el algoritmo K-means no es fácil de paralelizar. Además, el overhead de la paralelización por la comunicación entre los hilos y la sincronización de los mismos, puede ser mayor que el beneficio de la paralelización. 
+
+En un segundo momento, se debe revisar a fondo la documentación de la librería OMP para comprender mejor su funcionamiento a bajo nivel y poder determinar como generar un verdadero speed up. </p>
+</p>
 
 
 <h2> Conclusiones </h2>
