@@ -6,6 +6,7 @@
         "istream": "cpp",
         "iosfwd": "cpp",
         "stdexcept": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "iterator": "cpp"
     }
 }

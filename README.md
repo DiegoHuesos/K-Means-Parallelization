@@ -1,4 +1,14 @@
-<h1> Experimento de paralelización del algoritmo K-means implementando OMP en C++ </h1>
+<h1> Experimento de paralelización del algoritmo K-means implementado en lenguaje de programación C++ y el estándar OpenMP </h1>
+
+<h2> Instituto Tecnológico Autónomo de México </h2>
+
+<h2> Cómputo Paralelo y en la Nube </h2>
+
+
+
+<h2> Profesor </h2>
+
+<h5> Dr. José Octavio Gutiérrez García </h5>
 
 
 <h2> Integrantes </h2>
@@ -10,20 +20,98 @@
 
 
 <h2> Introducción </h2>
-
-<p> Programa </p>
  
-| Nombre | Mini Clasificador de Declaraciones |
-| Lenguaje de las declaraciones | [Kotlin](https://kotlinlang.org/docs/home.html) |
-| Tipos de datos de las declaraciones | Tipos de datos básicos del lenguaje |
-| Lenguaje de implementación | Java o Python |
-| Entregable | Código fuente documentado y archivo README |
-| Fecha de entrega | 15 de marzo de 2023 |
+El presente proyecto consiste en la comparación entre la eficiencia de la implementación serial y la implementación paralela del algoritmo de clusterización conocido como K-means. El algoritmo K-means es un algoritmo de aprendizaje no supervisado que agrupa datos en K clusters, donde K es un número predefinido. 
 
-- Explicación detallada de la definición del experimento.
-- Descripción del equipo donde se ejecutaron los experimentos en términos de hardware y software.
-- Interpretación y análisis de resultados.
-- Incluir gráficas
+Dicho algoritmo consiste en la asignación aleatoria de los centroides correspondientes a cada cluster,posteriormente, la asignación de los puntos al centroide más cercano y, finalmente, la actualización de la posición de los centroides al obtener el promedio de las posiciones de todos sus puntos. Este proceso se repite hasta que los centroides no se muevan más o hasta que se alcance un número límite de iteraciones.
+
+<h2> Objetivos </h2>
+
+- Implementar el algoritmo K-means de forma serial en lenguaje de programación C++, medir su tiempo de ejecución y almacenar los resultados.
+
+- Implementar el algoritmo K-means de forma paralela en lenguaje de programación C++ y el estándar OpenMP, medir su tiempo de ejecución y almacenar los resultados.
+
+- Ejecutar pruebas automatizadas con diferentes valores de entrada para el algoritmo K-means como el número de puntos, el número de clusters, el número máximo de iteraciones y el número de hilos (para la implementación paralela) por medio de scripts de bash.
+
+- Cada prueba debe ser ejecutada diez veces y se debe calcular el promedio de los tiempos de ejecución.
+
+- Comparar la eficiencia de la implementación serial y la implementación paralela del algoritmo K-means, mediante la obtención de la gráfica de speedups.
+
+- Realizar un análisis de resultados y determinar las conclusiones correspondientes.
+
+<h2> Estructura del proyecto </h2>
+
+- .vscode/
+    * launch.json
+    * settings.json
+    * tasks.json
+
+- Analysis/
+    * Parallel/
+        * Execution_Times/
+            * 100_Points/
+                * 1_threads.csv
+                * 6_threads.csv
+                * 12_threads.csv
+                * 24_threads.csv
+            * 100000_Points
+                * ...
+            * ...
+    * Serial/
+        * Execution_TImes/
+            * 100_times.csv
+            * 100000_times.csv
+            * ...
+- CODE/
+    * .ipynb_checkpoints/
+    * generate_data.py
+    * parallel_experiment.sh
+    * parallel_kmeans
+    * parallel_kmeans.cpp
+    * pipeline.sh
+    * serial_experiment.sh
+    * serial_kmeans
+    * serial_kmeans.cpp
+    * syntheticclusters.ipynb
+- Data/
+    * 100_data.csv
+    * 100000_data.csv
+    * ...
+- Results/
+    * Parallel/
+        * 100_Points/
+            * 1_threads/
+                * 1_100_1_results.csv
+                * 2_100_1_results.csv
+                * ...
+            * 6_threads/
+                * ...
+            * ...
+    * Serial/
+        * 100_Points/
+            * 1_100_results.csv
+            * 2_100_results.csv
+            * ...
+        * ...
+- README.md
+
+<h2> Explicación detallada de la implementación del experimento </h2>
+
+Para la implementación del algoritmo K-means en lenguaje de programación C++ se utilizó la biblioteca de OpenMP para la paralelización del algoritmo.
+
+Para ejecutar el proceso completo del experimento, se ejecuta el archivo **pipeline.sh** que, a su vez, ejecuta el archivo **generate_data.py**, el archivo **serial_experiment.sh** y el archivo **./parallel_kmeans.sh**. 
+
+El archivo **generate_data.py** genera aleatoriamente los datos de prueba con las diferentes cantidades de puntos (100, 100000, 200000, 300000, 400000, 600000, 800000, 1000000) en archivos csv en la carpeta **Data/**.
+
+El archivo **serial_experiment.sh** ejecuta el archivo ejecutable **./serial_kmeans** con diferentes parámetros (**num_clusters**, **num_points**, **num_max_iterations**) para las distintas pruebas del código serial.
+
+El archivo **./parallel_kmeans.cpp** ejecuta el archivo ejecutable **./parallel_kmeans** (**num_clusters**, **num_points**, **num_max_iterations**, **num_threads**) con diferentes parámetros para las distintas pruebas del código paralelo.
+
+El número de clusters está asignado a 5 por defecto. El número máximo de iteraciones está asignado a 100 por defecto.
+
+El número de puntos se itera entre los siguientes valores: 100, 100000, 200000, 300000, 400000, 600000, 800000, 1000000
+
+
  
 Experimento:
 
@@ -38,62 +126,28 @@ Parametrizar el programa
 • Obtener gráfica de Speed Ups
 
 
-<h2> Especificaciones Funcionales </h2>
-
-El programa lee los datos de entrada de un archivo que se pasa por medio de la línea de comandos o se carga por medio de una ventana de dialogo de abrir archivo.
-
-El programa utiliza expresiones regulares para realizar el análisis de la entrada, particularmente, utiliza las bibliotecas estándar de expresiones regulares de Python.
-
-El programa reconoce todos los tipos de declaraciones de variables del lenguaje Kotlin en su versión 1.8.10.
-
-El programa analiza las declaraciones que recibe y omite aquellas que no sean válidas. Así, el programa es capaz de recopilar las siguientes estadísticas sobre dichas declaraciones:
-
-- Numero total de variables declaradas.
-- Numero total de tipos utilizados en las declaraciones encontradas.
-- Numero total de variables declaradas de cada tipo.
-- Numero total de variables inicializadas.
-- Numero total de variables de tipo arreglo.
-- Número total de declaraciones constantes (es decir, el valor no se puede cambiar después de la inicialización).
-- Clasificación de todos los nombres de variables por tipo declarado.
-- El formato de salida es una impresión en consola de los resultados obtenidos.
-
-![Interaction of Lexxical Analyser with Parser](./maxresdefault.jpg "Title")
-
-<h2> Especificaciones de Hardware </h2>
-
-Sistema Operativo: Linux Ubuntu 20.04 LTS
-
-Procesador: AMD Ryzen 5 3600 6-Core Processor
-
-Cantidad de núcleos físicos: 6
-
-Cantidad de núcleos lógicos: 12
-
-Memoria RAM: 16 GB
 
 
 
-<h2> Funcionamiento </h2>
-
-<p>
-Para poder utilizar el programa, es necesario que las variables declaradas se encuentren escritas con los espacios necesarios como se considera en una escritura de Kotlin correcta.
-
-El programa podrá tomar como válida una declaración del tipo: **int a = 12;**
-
-Sin embargo, no tomará como válida una declaración del tipo **int a=12;**
 
 
-Al correr el archivo *Proyecto.py* la consola pedirá el nombre del archivo para analizar. Hemos proporcionado un archivo con todos los tipos de declaraciones posibles, nombrado "*test.txt*", para poder probar el programa, este archivo se encuentra en el presente directorio junto con el archivo ejecutable de Python. 
 
-Se presenta un menú interactivo donde se podrá elegir qué estadística se gusta obtener al proporcionar un número del 1 al 7. El número 7 está reservado para obtener en una misma llamada todos los resultados mencionados en las especificaciones. 
+<h2> Instrucciones de ejecución </h2>
 
-Dentro del código fuente se encuentra una breve descripción de cada función implementada para la operación del programa. 
-</p>
+- Para ejecutar el experimento completo, se puede ejecutar el archivo **pipeline.sh**.
 
-<h2> Restricciones </h2>
+- Para ejecutar únicamente el experimento de la implementación serial, se puede ejecutar el archivo **serial_experiment.sh**.
 
- - Únicamente se utilizan expresiones regulares para implementar el programa.
- - No se coloca el código fuente del programa en un repositorio público (e.g. Github).
+- Para ejecutar únicamente el experimento de la implementación paralela, se puede ejecutar el archivo **parallel_experiment.sh**.
+
+- Para ejecutar únicamente el código serial con una sola configuración de variables, se puede ejecutar el siguiente comando desde la terminal en la carpeta de CODE: **./serial_kmeans [num clusters] [num max iteraciones] [num puntos]** sustituyendo los valores deseados correspondientes.
+
+- Para ejecutar únicamente el código paralelo con una sola configuración de variables, se puede ejecutar el siguiente comando desde la terminal en la carpeta de CODE: **./parallel_kmeans [num clusters] [num max iteraciones] [num puntos] [num hilos]** sustituyendo los valores deseados correspondientes.
+
+
+<h2> Interpretación y análisis de resultados </h2>
+
+<p> El speedup observado en la implementación paralela es directamente proporcional al número de cores utilizados. </p>
 
 
 <h2> Conclusiones </h2>
@@ -101,13 +155,53 @@ Dentro del código fuente se encuentra una breve descripción de cada función i
 <p> El proyecto fue implementado en Python 3.8 haciendo uso de la biblioteca regex para el reconocimiento de expresiones regulares. El programa es capaz de reconocer todas las declaraciones de variables del lenguaje Kotlin en su versión 1.8.10. </p>
 
 
+![Interaction of Lexxical Analyser with Parser](./maxresdefault.jpg "Title")
+
+
+<h2> Descripción del equipo donde se ejecutaron las pruebas</h2>
+
+<h3> Hardware </h3>
+
+- Computadora: Laptop Huawei Matebook 14
+- Procesador: AMD Ryzen 5 3600 6-Core Processor
+- Memoria RAM: 16 GB
+- Disco duro: SSD 1 TB WD Blue SN550 NVMe M.2 2280
+- Cores físicos: 6
+- Cores lógicos: 12
+- Velocidad del procesador: 3.6 GHz
+- Velocidad de la memoria RAM: 3200 MHz
+
+<h3> Software </h3>
+
+- Sistema Operativo: Linux Ubuntu 20.04 LTS
+- IDE: Visual Studio Code
+- Lenguajes de programación: C++, Bash, Python
+- Biblioteca de paralelización: OpenMP
+- Compilador: g++ (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0
+- Versión de C++: C++17
+- Versión de Python: 3.8.5
+
+
 <h2> Referencias </h2>
 
-- [Kotlin](https://kotlinlang.org/docs/home.html)
+- [OpenMP](https://www.openmp.org/)
+
+- [C++](https://docs.python.org/3/howto/regex.html)
+
+- [G++](https://www.geeksforgeeks.org/compiling-with-g-plus-plus/)
+
 - [Python](https://www.python.org/)
-- [Regex](https://docs.python.org/3/library/re.html)
-- [Regex](https://docs.python.org/3/library/re.html)
-- [Regex](https://docs.python.org/3/howto/regex.html)
-- [Regex](https://docs.python.org/3/library/re.html)
-- [Regex](https://docs.python.org/3/howto/regex.html)
+
+- [Bash](https://www.gnu.org/software/bash/)
+
+- Robey, Robert, and Yuliana Zamora. Parallel and High Performance Computing. Simon and
+Schuster, 2021.
+
+- Tuomanen, Brian. Hands-On GPU Programming with Python and CUDA: Explore high-
+performance parallel computing with CUDA. Packt Publishing Ltd, 2018.
+
+- Wilt, Nicholas. The CUDA handbook: A comprehensive guide to gpu programming. Pearson
+Education, 2013.
+
+
 

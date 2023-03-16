@@ -10,6 +10,7 @@
  * @param num_threads Número de hilos a utilizar
  * */
 
+// Inclusión de las librerías necesarias para el programa
 #include <omp.h>
 #include <iostream>
 #include <string>
@@ -31,12 +32,13 @@ using namespace std;
  * @param point_dimension_size Dimensiones de los puntos, es decir, el número de coordenadas de cada punto
  * @return Distancia euclidiana entre los dos puntos dados
  * */
-float euclidean_distance(float* point1, float* point2, int point_dimension_size, int num_threads) {    
+float euclidean_distance(float* point1, float* point2, int point_dimension_size) {    
     float distance = 0;
     int i;
-    // Se calcula paralelamente la distancia euclidiana entre los dos puntos dados 
-    //#pragma omp parallel for shared(point1, point2) private(i) reduction(+:distance) num_threads(num_threads)
+    // Se calcula la distancia euclidiana entre los dos puntos dados 
+    //#pragma omp parallel for reduction(+:distance) 
     for (i = 0; i < point_dimension_size; i++) {
+        //#pragma omp atomic
         distance += pow((point1[i] - point2[i]), 2);
     }
     // Se regresa la raíz cuadrada de la distancia euclidiana obtenida de forma serial
@@ -52,20 +54,24 @@ float euclidean_distance(float* point1, float* point2, int point_dimension_size,
  * @param point_dimension_size Dimensiones de los puntos, es decir, el número de coordenadas de cada punto
  * @return Índice del centroide más cercano al punto dado
  * */
-int find_nearest_centroid(float** centroids, float* point, int n_clusters, int point_dimension_size, int num_threads) {
+int find_nearest_centroid(float** centroids, float* point, int n_clusters, int point_dimension_size) {
     // Se calcula la distancia euclidiana entre el punto y el primer centroide y se guarda como la distancia mínima
-    float min_distance = euclidean_distance(centroids[0], point, point_dimension_size, num_threads);
+    float min_distance = euclidean_distance(centroids[0], point, point_dimension_size);
     // Se guarda el índice del primer centroide como el índice del centroide más cercano
     int nearest_centroid_index = 0;
 
     // Se calcula paralelamente la distancia euclidiana entre el punto y cada uno de los centroides restantes y se guarda el índice del centroide más cercano
-    #pragma omp parallel for shared(centroids, point, min_distance, nearest_centroid_index) private(i, distance) num_threads(num_threads)
+    float distance;
+    #pragma omp parallel for shared(centroids, point, min_distance, nearest_centroid_index) private(distance)
     for (int i = 1; i < n_clusters; i++) {
-        float distance = euclidean_distance(centroids[i], point, point_dimension_size, num_threads);
-        if (distance < min_distance) {
-            min_distance = distance;
-            nearest_centroid_index = i;
-        }
+        distance = euclidean_distance(centroids[i], point, point_dimension_size);
+        #pragma omp critical
+        {
+            if (distance < min_distance) {
+                min_distance = distance;
+                nearest_centroid_index = i;
+            }
+        }    
     }
     // Se regresa el índice del centroide más cercano
     return nearest_centroid_index;
@@ -79,33 +85,44 @@ int find_nearest_centroid(float** centroids, float* point, int n_clusters, int p
  * @param n_clusters Número de clusters o centroides
  * @param num_points Número de puntos
  * */
-void update_centroids(float** centroids, float** points, int n_clusters, long long int num_points, int num_threads) {
+void update_centroids(float** centroids, float** points, int n_clusters, long long int num_points) {
     float** new_centroids = new float*[n_clusters];
+    int i;
     // Se inicializa paralelamente el arreglo de nuevos centroides con 0s en todas sus coordenadas y se inicializa la cantidad de puntos en cada cluster en 0
-    #pragma omp parallel for shared(new_centroids) num_threads(num_threads)
-    for (int i = 0; i < n_clusters; i++)
+    #pragma omp parallel for //shared (new_centroids, n_clusters) 
+    for (i=0; i < n_clusters; i++)
     {
-        new_centroids[i] = new float[3];
-        new_centroids[i][0] = 0;
-        new_centroids[i][1] = 0;
-        new_centroids[i][2] = 0;
+        #pragma omp critical
+        {
+            new_centroids[i] = new float[3];
+            new_centroids[i][0] = 0;
+            new_centroids[i][1] = 0;
+            new_centroids[i][2] = 0;
+        }
     }
 
     // Se iteran todos los puntos y se suman las X y Y de cada cluster
     int cluster;
-    #pragma omp parallel for shared(points, new_centroids) private(cluster) num_threads(num_threads)
-    for(long long int i =0; i < num_points; i++){
-        cluster = (int) points[i][2];  // Cluster/Centroide al que pertenece el punto
-        new_centroids[cluster][0] += points[i][0]; // Se suman las X de ese cluster en particular
-        new_centroids[cluster][1] += points[i][1]; // Se suman las Y de ese cluster en particular
+    long long int j;
+    #pragma omp parallel for private(cluster)
+    for(j=0; j < num_points; j++){
+        #pragma omp critical
+        {
+            cluster = (int) points[j][2];  // Cluster/Centroide al que pertenece el punto
+            new_centroids[cluster][0] += points[j][0]; // Se suman las X de ese cluster en particular
+            new_centroids[cluster][1] += points[j][1]; // Se suman las Y de ese cluster en particular
+        }
     }
     // Para obtener la nueva X del centroide, se divide la suma de las X de los puntos del cluster entre la cantidad de puntos en el cluster
     // Para obtener la nueva Y del centroide, se divide la suma de las Y de los puntos del cluster entre la cantidad de puntos en el cluster
-    #pragma omp parallel for shared(centroids, new_centroids) num_threads(num_threads)
+    #pragma omp parallel for shared (new_centroids, centroids, n_clusters) 
     for(int i =0; i < n_clusters; i++){
-        if(centroids[i][2] != 0){
+        #pragma omp critical
+        {
+            if(centroids[i][2] != 0){
             centroids[i][0] = new_centroids[i][0] / centroids[i][2]; 
             centroids[i][1] = new_centroids[i][1] / centroids[i][2]; 
+            }
         }
     }
     // Liberar memoria al borrar matriz temporal new_centroids utilizada para calcular los nuevos centroides
@@ -123,25 +140,28 @@ void update_centroids(float** centroids, float** points, int n_clusters, long lo
  * @param num_points Número de puntos
  * @param max_iterations Número máximo de iteraciones
  * */
-void kmeans(float** points, int n_clusters, long long int num_points, long long int max_iterations, int num_threads) {
+void kmeans(float** points, int n_clusters, long long int num_points, long long int max_iterations) {
 
     // Paso 1. Crear k centroides y distribuirlos aleatoriamente sobre los datos
     //cout << "Paso 1. Crear k centroides y distribuirlos aleatoriamente sobre los datos" << "\n";
     float** centroids = new float*[n_clusters];
-    #pragma omp parallel for shared(centroids, points, n_clusters, num_points) num_threads(num_threads)
+    #pragma omp parallel for shared(centroids, points, n_clusters, num_points) 
     for (int i = 0; i < n_clusters; i++) {
-        srand(time(NULL));
-        centroids[i] = new float[3];  //{cantidad de puntos en el cluster, x position, y position}
-        centroids[i][0] = points[rand() % num_points][0]; // position x
-        centroids[i][1] = points[rand() % num_points][1]; // position y
-        centroids[i][2] = 0; // cantidad de puntos en el cluster
+        #pragma omp critical
+        {
+            srand(time(NULL));
+            centroids[i] = new float[3];  //{cantidad de puntos en el cluster, x position, y position}
+            centroids[i][0] = points[rand() % num_points][0]; // position x
+            centroids[i][1] = points[rand() % num_points][1]; // position y
+            centroids[i][2] = 0; // cantidad de puntos en el cluster
+        }
     }
 
     // Paso 2. Asignar los puntos al centroide / cluster más cercano
     //cout << "Paso 2. Asignar los puntos al centroide / cluster más cercano" << "\n";
-    // #pragma omp parallel for shared(points, centroids, n_clusters) num_threads(num_threads) 
+    // #pragma omp parallel for shared(points, centroids, n_clusters)  
     for (long long int i = 0; i < num_points; i++) {
-        int nearest_centroid_index = find_nearest_centroid(centroids, points[i], n_clusters, 2, num_threads);
+        int nearest_centroid_index = find_nearest_centroid(centroids, points[i], n_clusters, 2); //Find nearest es paralelo
         points[i][2] = nearest_centroid_index;
         centroids[nearest_centroid_index][2]++; //Incrementar la cantidad de puntos en ese cluster
     }
@@ -151,7 +171,7 @@ void kmeans(float** points, int n_clusters, long long int num_points, long long 
         // Centroide X = Promedio de todas las posiciones X de los puntos del cluster correspondiente a ese centroide
         // Centroide Y = Promedio de todas las posiciones Y de sus puntos del cluster correspondiente a ese centroide
     //cout << "Paso 3. Actualizar la posición de los centroides" << "\n";
-    update_centroids(centroids, points, n_clusters, num_points, num_threads);
+    update_centroids(centroids, points, n_clusters, num_points);
   
 
     // Paso 4. Repetir pasos 1 y 2 hasta que ningún punto cambie de cluster o hasta un número dado.
@@ -165,7 +185,7 @@ void kmeans(float** points, int n_clusters, long long int num_points, long long 
         changed = false;
         // Asignar los puntos a los clusters más cercanos si es que ha cambiado el centroide más cercano
         for (long long int i = 0; i < num_points; i++) {
-            nearest_centroid_index = find_nearest_centroid(centroids, points[i], n_clusters, 2, num_threads);
+            nearest_centroid_index = find_nearest_centroid(centroids, points[i], n_clusters, 2);
             if (points[i][2] != nearest_centroid_index) {
                 index = (int) points[i][2];
                 centroids[index][2]--;// Decrementa la cantidad de puntos en el cluster en el que estaba anteriormente 
@@ -185,7 +205,7 @@ void kmeans(float** points, int n_clusters, long long int num_points, long long 
         cout << max_iterations << "\n";
         */
         // Actualizar la posición de los centroides
-        update_centroids(centroids, points, n_clusters, num_points, num_threads);
+        update_centroids(centroids, points, n_clusters, num_points);
         iteration++;
     }
 
@@ -229,7 +249,7 @@ void load_CSV(string file_name, float** points, long long int num_points, int nu
     myfile.close();
 
     // Convierte los strings a floats y los almacena en la matriz de puntos de forma paralela   
-    #pragma omp parallel for shared(points, num_points, i, str_points) num_threads(num_threads)
+    #pragma omp parallel for shared(points, num_points, str_points) 
     for(i=0; i<num_points; i++){
         points[i][0] = stof(str_points[i].substr(0, 5));
         points[i][1] = stof(str_points[i].substr(6, 5));
@@ -257,7 +277,7 @@ void save_to_CSV(string file_name, float** points, long long int size) {
     }
 }
 
-void save_array_to_CSV(string file_name, float* times,  int size) {
+void save_array_to_CSV(string file_name, double* times,  int size) {
     fstream fout;
     fout.open(file_name, ios::out);
     for (int i = 0; i < size; i++) {
@@ -287,8 +307,8 @@ int main(int argc, char** argv) {
         if(argc == 1){
             n_clusters = 5;
             num_points = 100;
-            max_iterations = 90000000;
-            num_threads = 1;
+            max_iterations = 5; //90000000;
+            num_threads = 6;
         }else
             // Si se pasan argumentos, se usan esos valores
             if(argc == 5){
@@ -313,35 +333,47 @@ int main(int argc, char** argv) {
         cout << "Usage: ./kmeans <n_clusters> <num_points> <max_iterations>" << "\n";
         return 1;
     }
-
+    max_iterations = 2;
     // Se establece el número de hilos a usar en OpenMP pasando el argumento de entrada de num_threads
     omp_set_num_threads(num_threads);
 
-    // Se establece que se pueden usar hilos anidados en OpenMP
-    omp_set_nested(true);
+    // Se establece que se pueden usar hidir_strlos anidados en OpenMP
+    //omp_set_nested(true);
 
     // Inicializa de forma paralela el arreglo de puntos con ceros y sin cluster con -1
     float** points = new float*[num_points];
-    long long int i;
-    #pragma omp parallel shared(num_threads, i, points, num_points) 
-    {
-        #pragma omp for schedule(static, num_points/num_threads)
-        for(i = 0; i < num_points; i++) {
-            points[i] = new float[3]{0.0, 0.0, -1}; 
-            // index 0: position x
-            // index 1: position y 
-            // index 2: cluster
-        }
+    //#pragma omp parallel for shared(points, num_points) 
+    for(long long int i = 0; i < num_points; i++) {
+        points[i] = new float[3]{0.0, 0.0, -1}; // {x, y, cluster}
     }
 
     // Crea el directorio de resultados correspondiente al número de puntos del experimento  
-    string dir_str = "./../Results/Serial/"+ to_string(num_points) +"_Points/";
+    string dir_str = "./../Results/Parallel/"+ to_string(num_points) +"_Points/";
     char* dir = new char[dir_str.length() + 1];
     strcpy(dir, dir_str.c_str());
-    if ( mkdir(dir, 0777) == -1)
-        cerr << "Error :  " << strerror(errno) << endl;
+    struct stat sb;
+    try{
+        if (stat(dir, &sb) != 0){
+            mkdir(dir, 0777);
+        }   
+    }catch(const std::exception& e){
+        cout << "Error: mkdir()" << "\n";
+        cout << e.what() << "\n";
+    }
     delete[] dir;
-
+    // Ahora la carpeta con el número de threads  
+    struct stat sb_a;
+    string dir_str_a = dir_str + to_string(num_threads) +"_Threads/";
+    char* dir_a = new char[dir_str_a.length() + 1];
+    strcpy(dir_a, dir_str_a.c_str());
+    try{
+        if (stat(dir_a, &sb_a) != 0)
+            mkdir(dir_a, 0777);
+    }catch(const std::exception& e){
+        cout << "Error: mkdir()" << "\n";
+        cout << e.what() << "\n";
+    }
+    delete[] dir_a;
 
     // Lee de forma paralela los puntos del archivo csv  y se guardan en la matriz de puntos
     string input_file_name = "./../Data/" + to_string(num_points)+"_data.csv";
@@ -353,17 +385,18 @@ int main(int argc, char** argv) {
     }
     
     string output_file_name;
-    float* times = new float[10]{0.0}; // Arreglo para guardar los tiempos de ejecución de cada experimento
+    double* times = new double[11]{0.0}; // Arreglo para guardar los tiempos de ejecución de cada experimento
     float sum_times = 0.0; // Variable para guardar la suma de los tiempos de ejecución de los 10 experimentos
     float avg_time = 0.0; // Variable para guardar el promedio de los tiempos de ejecución de los 10 experimentos
+    double start; // Variable para guardar el tiempo de inicio de la ejecución del algoritmo
     // Se itera serialmente 10 veces para repetir el experimento con esta configuración de parámetros
     for(int i = 1; i < 11; i++){
-
+        //cout << "Experiment " << i << "\n";
         // Invoca el método de kmeans con la matriz de puntos, el número de clusters deseados y el número total de puntos
         try{
-            const clock_t begin_time = clock();
-            kmeans(points, n_clusters, num_points, max_iterations, num_threads); 
-            times[i] = float( clock () - begin_time ) /  CLOCKS_PER_SEC;
+            start = omp_get_wtime(); 
+            kmeans(points, n_clusters, num_points, max_iterations); 
+            times[i] = omp_get_wtime() - start;
             sum_times += times[i];
         } catch (const std::exception& e) {
             cout << "Error: kmeans()" << "\n";
@@ -371,7 +404,8 @@ int main(int argc, char** argv) {
         }
             
         // Guarda el resultado de los puntos con su respectivo centroide/cluster en el archivo de salida
-        output_file_name = dir_str + to_string(i) +"_"+ to_string(num_points)+"_results.csv"; 
+        output_file_name = dir_str_a + to_string(i) +"_"+ to_string(num_points)+"_"+to_string(num_threads)+"_results.csv"; 
+        //output_file_name = dir_str + "P_"+ to_string(num_points)+"_results.csv"; 
         try{
             save_to_CSV(output_file_name, points, num_points);
         } catch (const std::exception& e) {
@@ -380,10 +414,24 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Crea el directorio de resultados correspondiente al número de puntos del experimento  
+    string dir_str_b = "./../Analysis/Parallel/Execution_Times/"+ to_string(num_points) +"_Points/";
+    char* dir_b = new char[dir_str_b.length() + 1];
+    strcpy(dir_b, dir_str_b.c_str());
+    struct stat sb_b;
+    try{
+        if (stat(dir_b, &sb_b) != 0){
+            mkdir(dir_b, 0777);
+        }          
+    }catch(const std::exception& e){
+        cout << "Error: mkdir()" << "\n";
+        cout << e.what() << "\n";
+    }
+    delete[] dir_b;
     // Guarda los tiempos de ejecución de los 10 experimentos y el promedio en la primera fila en un archivo csv 
     avg_time = sum_times / 10.0;
     times[0] = avg_time;
-    output_file_name = "./../Analysis/Serial/Execution_Times/"+ to_string(num_points)+"_times.csv"; 
+    output_file_name = dir_str_b + to_string(num_threads)+"_threads.csv"; 
     try{
         save_array_to_CSV(output_file_name, times, 11);
     } catch (const std::exception& e) {

@@ -11,6 +11,10 @@ python3 ./generate_data.py
 ./serial_experiment.sh
 
 # 3. Run the parallel experiment.
+./parallel_experiment.sh
+
+
+# Otras posibles automatizaciones futuras:
 
 # 4. Run the plot script to generate the plots.
 

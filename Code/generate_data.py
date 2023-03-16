@@ -22,3 +22,5 @@ for n_points in n_points_list:
 
     # storing points into a csv file
     np.savetxt("./../Data/"+str(n_points)+"_data.csv", points, delimiter=",",  fmt="%.3f")
+
+

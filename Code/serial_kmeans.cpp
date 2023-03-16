@@ -110,7 +110,7 @@ void update_centroids(float** centroids, float** points, int n_clusters, long lo
 void kmeans(float** points, int n_clusters, long long int num_points, long long int max_iterations) {
 
     // Paso 1. Crear k centroides y distribuirlos aleatoriamente sobre los datos
-    cout << "Paso 1. Crear k centroides y distribuirlos aleatoriamente sobre los datos" << "\n";
+    //cout << "Paso 1. Crear k centroides y distribuirlos aleatoriamente sobre los datos" << "\n";
     float** centroids = new float*[n_clusters];
     for (int i = 0; i < n_clusters; i++) {
         srand(time(NULL));
@@ -123,7 +123,7 @@ void kmeans(float** points, int n_clusters, long long int num_points, long long 
     }
 
     // Paso 2. Asignar los puntos al centroide / cluster más cercano
-    cout << "Paso 2. Asignar los puntos al centroide / cluster más cercano" << "\n";
+    //cout << "Paso 2. Asignar los puntos al centroide / cluster más cercano" << "\n";
     for (long long int i = 0; i < num_points; i++) {
         int nearest_centroid_index = find_nearest_centroid(centroids, points[i], n_clusters, 2);
         points[i][2] = nearest_centroid_index;
@@ -134,12 +134,12 @@ void kmeans(float** points, int n_clusters, long long int num_points, long long 
     // Paso 3. Actualizar la posición de los centroides
         // Centroide X = Promedio de todas las posiciones X de los puntos del cluster correspondiente a ese centroide
         // Centroide Y = Promedio de todas las posiciones Y de sus puntos del cluster correspondiente a ese centroide
-    cout << "Paso 3. Actualizar la posición de los centroides" << "\n";
+    //cout << "Paso 3. Actualizar la posición de los centroides" << "\n";
     update_centroids(centroids, points, n_clusters, num_points);
   
 
-    // Paso 4. Repetir pasos 1 y 2 hasta que ningún punto cambie de cluster o hasta un número dado.
-    cout << "Paso 4. Repetir pasos 1 y 2 hasta que ningún punto cambie de cluster o hasta un número dado." << "\n";
+    // Paso 4. Repetir pasos 1 y 2 y 3hasta que ningún punto cambie de cluster o hasta un número dado.
+    //cout << "Paso 4. Repetir pasos 1 y 2 hasta que ningún punto cambie de cluster o hasta un número dado." << "\n";
     long long int iteration = 0;
     int index;
     bool changed = true;
@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
         if(argc == 1){
             n_clusters = 5;
             num_points = 100;
-            max_iterations = 90000000;
+            max_iterations = 100;
         }else
             // Si se pasan argumentos, se usan esos valores
             if(argc == 4){
@@ -297,8 +297,14 @@ int main(int argc, char** argv) {
     string dir_str = "./../Results/Serial/"+ to_string(num_points) +"_Points/";
     char* dir = new char[dir_str.length() + 1];
     strcpy(dir, dir_str.c_str());
-    if ( mkdir(dir, 0777) == -1)
-        cerr << "Error :  " << strerror(errno) << endl;
+    struct stat sb;
+    try{
+        if (stat(dir, &sb) == 0)
+        mkdir(dir, 0777);
+    }catch(const std::exception& e){
+        cout << "Error: mkdir()" << "\n";
+        cout << e.what() << "\n";
+    }
     delete[] dir;
 
 
@@ -312,7 +318,7 @@ int main(int argc, char** argv) {
     }
     
     string output_file_name;
-    float* times = new float[10]{0.0}; // Arreglo para guardar los tiempos de ejecución de cada experimento
+    float* times = new float[11]{0.0}; // Arreglo para guardar los tiempos de ejecución de cada experimento
     float sum_times = 0.0; // Variable para guardar la suma de los tiempos de ejecución de los 10 experimentos
     float avg_time = 0.0; // Variable para guardar el promedio de los tiempos de ejecución de los 10 experimentos
     // Se itera 10 veces para repetir el experimento con esta configuración de parámetros
