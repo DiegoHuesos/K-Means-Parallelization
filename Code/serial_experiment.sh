@@ -7,7 +7,7 @@
 num_points=("100" "100000" "200000" "300000" "400000" "600000" "800000" "1000000")
 num_points_size=${#num_points[@]}
 
-n_clusters="5"
+n_clusters="13"
 max_iterations="100"
         
 # a) Run the experiment with different number of points

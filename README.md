@@ -167,19 +167,22 @@ Los métodos utilizados para la implementación del algoritmo K-means son los si
 
 <p> El speedup observado en la implementación paralela debería ser, en principio, directamente proporcional al número de cores utilizados. 
 Sin emabrgo, en la implementación paralela se observó que el speedup no es directamente proporcional al número de cores utilizados en este experimento. 
-
-Esto resultado inesperado se puede deber a que el algoritmo K-means no es fácil de paralelizar. Además, el overhead de la paralelización por la comunicación entre los hilos y la sincronización de los mismos, puede ser mayor que el beneficio de la paralelización. 
-
-En un segundo momento, se debe revisar a fondo la documentación de la librería OMP para comprender mejor su funcionamiento a bajo nivel y poder determinar como generar un verdadero speed up. </p>
 </p>
+
+<h3> Gráficas del Speed up </h3>
+
+![Speed up 100](./Images/speed_up_100.png "Title")
+
+![Speed up 100000](./Images/speed_up_100000.png "Title")
 
 
 <h2> Conclusiones </h2>
 
-<p> El proyecto fue implementado en Python 3.8 haciendo uso de la biblioteca regex para el reconocimiento de expresiones regulares. El programa es capaz de reconocer todas las declaraciones de variables del lenguaje Kotlin en su versión 1.8.10. </p>
+<p> El resultado inesperado se puede deber a que el algoritmo K-means no es fácil de paralelizar. Además, el overhead de la paralelización por la comunicación entre los hilos y la sincronización de los mismos, puede ser mayor que el beneficio de la paralelización. 
+
+En un segundo momento, se debe revisar a fondo la documentación de la librería OMP para comprender mejor su funcionamiento a bajo nivel y poder determinar como generar un verdadero speed up.  </p>
 
 
-![Interaction of Lexxical Analyser with Parser](./maxresdefault.jpg "Title")
 
 
 <h2> Descripción del equipo donde se ejecutaron las pruebas</h2>
